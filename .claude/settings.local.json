@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Skill(update-config)",
+      "Read(//c/Users/666dd/.claude/**)",
+      "Bash(python -m json.tool)",
+      "Bash(claude mcp:*)",
+      "Bash(uvx --version)",
+      "Bash(npx -y markitdown-mcp)",
+      "Bash(npx --yes --package=task-master-ai task-master-ai --stdio)",
+      "Bash(pip install:*)",
+      "Bash(npx --yes --package=task-master-ai@latest task-master-ai --stdio)",
+      "Bash(kill %1)",
+      "Bash(npm show:*)",
+      "Bash(npx -y task-master-ai --help)",
+      "Bash(python -c \"import json,sys; v=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(v[-10:]\\)\\)\")",
+      "Bash(npx -y task-master-ai@0.40.1 --help)",
+      "Bash(npx -y github:PCIRCLE-AI/toonify-mcp)",
+      "Bash(npx tsc *)",
+      "Bash(node *)",
+      "Bash(timeout 8 npx tsx index.ts)",
+      "Bash(npx vite *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000 \")",
+      "Bash(taskkill *)",
+      "Bash(cmd *)",
+      "Bash(powershell *)",
+      "Bash(findstr \":3001 \")",
+      "Bash(findstr \":3000 \\\\|:3001 \")",
+      "Bash(curl *)",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(findstr \":300\")",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git --version)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
+    ]
+  }
+}
