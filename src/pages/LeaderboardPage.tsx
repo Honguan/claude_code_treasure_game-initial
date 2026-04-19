@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 import { Button } from '../components/ui/button';
 
 interface LeaderboardEntry {
@@ -18,7 +20,7 @@ export default function LeaderboardPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/leaderboard')
+    fetch(`${API_BASE}/api/leaderboard`)
       .then(r => r.json())
       .then(data => {
         setEntries(data);
