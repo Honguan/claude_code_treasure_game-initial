@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 import { Button } from './components/ui/button';
+import { useAuth } from './contexts/AuthContext';
+import { useApi } from './hooks/useApi';
 import closedChest from './assets/treasure_closed.png';
 import keyImage from './assets/key.png';
 import treasureChest from './assets/treasure_opened.png';
@@ -18,25 +21,45 @@ export default function App() {
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [score, setScore] = useState(0);
   const [gameEnded, setGameEnded] = useState(false);
+  const scoreSaved = useRef(false);
+
+  const { user, isGuest } = useAuth();
+  const { apiFetch } = useApi();
 
   const initializeGame = () => {
-    // Randomly assign treasure to one box
     const treasureBoxIndex = Math.floor(Math.random() * 3);
     const newBoxes: Box[] = Array.from({ length: 3 }, (_, index) => ({
       id: index,
       isOpen: false,
       hasTreasure: index === treasureBoxIndex,
     }));
-    
     setBoxes(newBoxes);
     setScore(0);
     setGameEnded(false);
+    scoreSaved.current = false;
   };
 
-  // Initialize game automatically when component mounts
   useEffect(() => {
     initializeGame();
   }, []);
+
+  useEffect(() => {
+    if (!gameEnded || scoreSaved.current) return;
+    scoreSaved.current = true;
+
+    const won = boxes.some(b => b.isOpen && b.hasTreasure);
+
+    if (user) {
+      apiFetch('/api/scores', {
+        method: 'POST',
+        body: JSON.stringify({ score, won }),
+      })
+        .then(() => toast.success('分數已儲存！'))
+        .catch(() => toast.error('儲存分數失敗'));
+    } else if (isGuest) {
+      toast.info('以訪客模式遊玩，分數不會儲存。登入後可上排行榜！');
+    }
+  }, [gameEnded]);
 
   const openBox = (boxId: number) => {
     if (gameEnded) return;
@@ -55,20 +78,15 @@ export default function App() {
         }
         return box;
       });
-      
-      // Check if treasure is found or all boxes are opened
+
       const treasureFound = updatedBoxes.some(box => box.isOpen && box.hasTreasure);
       const allOpened = updatedBoxes.every(box => box.isOpen);
       if (treasureFound || allOpened) {
         setGameEnded(true);
       }
-      
+
       return updatedBoxes;
     });
-  };
-
-  const resetGame = () => {
-    initializeGame();
   };
 
   return (
@@ -105,108 +123,98 @@ export default function App() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            {boxes.map((box) => (
-              <motion.div
-                key={box.id}
-                className="flex flex-col items-center group"
-                style={!box.isOpen ? { cursor: `url(${keyImage}) 24 24, pointer` } : { cursor: 'default' }}
-                whileHover={{ scale: box.isOpen ? 1 : 1.05 }}
-                whileTap={{ scale: box.isOpen ? 1 : 0.95 }}
-                onClick={() => openBox(box.id)}
-              >
+        {boxes.map((box) => (
+          <motion.div
+            key={box.id}
+            className="flex flex-col items-center group"
+            style={!box.isOpen ? { cursor: `url(${keyImage}) 24 24, pointer` } : { cursor: 'default' }}
+            whileHover={{ scale: box.isOpen ? 1 : 1.05 }}
+            whileTap={{ scale: box.isOpen ? 1 : 0.95 }}
+            onClick={() => openBox(box.id)}
+          >
+            <motion.div
+              initial={{ rotateY: 0 }}
+              animate={{
+                rotateY: box.isOpen ? 180 : 0,
+                scale: box.isOpen ? 1.1 : 1
+              }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
+              className="relative"
+            >
+              <img
+                src={box.isOpen ? (box.hasTreasure ? treasureChest : skeletonChest) : closedChest}
+                alt={box.isOpen ? (box.hasTreasure ? 'Treasure!' : 'Skeleton!') : 'Treasure Chest'}
+                className="w-48 h-48 object-contain drop-shadow-lg"
+              />
+
+              {box.isOpen && (
                 <motion.div
-                  initial={{ rotateY: 0 }}
-                  animate={{ 
-                    rotateY: box.isOpen ? 180 : 0,
-                    scale: box.isOpen ? 1.1 : 1
-                  }}
-                  transition={{ 
-                    duration: 0.6,
-                    ease: "easeInOut"
-                  }}
-                  className="relative"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="absolute -top-8 left-1/2 transform -translate-x-1/2"
                 >
-                  <img
-                    src={box.isOpen
-                      ? (box.hasTreasure ? treasureChest : skeletonChest)
-                      : closedChest
-                    }
-                    alt={box.isOpen
-                      ? (box.hasTreasure ? "Treasure!" : "Skeleton!")
-                      : "Treasure Chest"
-                    }
-                    className="w-48 h-48 object-contain drop-shadow-lg"
-                  />
-                  
-                  {box.isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3, duration: 0.5 }}
-                      className="absolute -top-8 left-1/2 transform -translate-x-1/2"
-                    >
-                      {box.hasTreasure ? (
-                        <div className="text-2xl animate-bounce">✨💰✨</div>
-                      ) : (
-                        <div className="text-2xl animate-pulse">💀👻💀</div>
-                      )}
-                    </motion.div>
+                  {box.hasTreasure ? (
+                    <div className="text-2xl animate-bounce">✨💰✨</div>
+                  ) : (
+                    <div className="text-2xl animate-pulse">💀👻💀</div>
                   )}
                 </motion.div>
-                
-                <div className="mt-4 text-center">
-                  {box.isOpen ? (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.4, duration: 0.3 }}
-                      className={`text-lg p-2 rounded-lg ${
-                        box.hasTreasure 
-                          ? 'bg-green-100 text-green-800 border border-green-300' 
-                          : 'bg-red-100 text-red-800 border border-red-300'
-                      }`}
-                    >
-                      {box.hasTreasure ? '+$100' : '-$50'}
-                    </motion.div>
-                  ) : (
-                    <div className="text-amber-700 p-2">
-                      Click to open!
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+              )}
+            </motion.div>
+
+            <div className="mt-4 text-center">
+              {box.isOpen ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                  className={`text-lg p-2 rounded-lg ${
+                    box.hasTreasure
+                      ? 'bg-green-100 text-green-800 border border-green-300'
+                      : 'bg-red-100 text-red-800 border border-red-300'
+                  }`}
+                >
+                  {box.hasTreasure ? '+$100' : '-$50'}
+                </motion.div>
+              ) : (
+                <div className="text-amber-700 p-2">Click to open!</div>
+              )}
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       {gameEnded && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-center"
-            >
-              <div className="mb-4 p-6 bg-amber-200/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-amber-400">
-                <h2 className="text-2xl mb-2 text-amber-900">Game Over!</h2>
-                <p className="text-lg text-amber-800">
-                  Final Score: <span className={`${score >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${score}
-                  </span>
-                </p>
-                <p className="text-sm text-amber-600 mt-2">
-                  {boxes.some(box => box.isOpen && box.hasTreasure) 
-                    ? 'Treasure found! Well done, treasure hunter! 🎉' 
-                    : 'No treasure found this time! Better luck next time! 💀'}
-                </p>
-              </div>
-              
-              <Button 
-                onClick={resetGame}
-                className="text-lg px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                Play Again
-              </Button>
-            </motion.div>
-          )}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <div className="mb-4 p-6 bg-amber-200/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-amber-400">
+            <h2 className="text-2xl mb-2 text-amber-900">Game Over!</h2>
+            <p className="text-lg text-amber-800">
+              Final Score:{' '}
+              <span className={`${score >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${score}
+              </span>
+            </p>
+            <p className="text-sm text-amber-600 mt-2">
+              {boxes.some(box => box.isOpen && box.hasTreasure)
+                ? 'Treasure found! Well done, treasure hunter! 🎉'
+                : 'No treasure found this time! Better luck next time! 💀'}
+            </p>
+          </div>
+
+          <Button
+            onClick={initializeGame}
+            className="text-lg px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            Play Again
+          </Button>
+        </motion.div>
+      )}
     </div>
   );
 }

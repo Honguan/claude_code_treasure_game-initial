@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: treasure-game-server
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: cd server && npm install && npm run build
+    startCommand: cd server && node dist/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://Honguan.github.io
+      - key: PORT
+        value: "10000"
